@@ -1,0 +1,19 @@
+# secrets & credentials
+.env
+harness/.secrets/
+
+# runtime data
+memory/*.db
+.claude/settings.local.json
+
+# voice model assets (Phase 6, large binaries — never commit these)
+harness/voice/models/
+
+# python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+
+# misc
+.DS_Store
