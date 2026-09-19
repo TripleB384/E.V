@@ -1,0 +1,8 @@
+fastapi>=0.115
+uvicorn[standard]>=0.32
+python-dotenv>=1.0
+
+# Available to E.V's Bash(python3 *) tool for generating charts/diagrams —
+# not imported by the harness itself, just installed into the same venv so
+# it's there when asked for (see CLAUDE.md's "creating things" section).
+matplotlib>=3.9

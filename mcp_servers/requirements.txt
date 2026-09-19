@@ -1,0 +1,12 @@
+# Verified against mcp==2.2.0's MCPServer API (mcp.server.mcpserver.MCPServer,
+# @app.tool() decorator, app.run()) — the mcp package's API changed between
+# major versions (FastMCP was renamed/moved), so if tool registration starts
+# failing, check that first: python3 -c "from mcp.server.mcpserver import MCPServer"
+mcp>=2.0
+
+requests>=2.32
+
+# Calendar integration only (Google OAuth desktop flow)
+google-api-python-client>=2.140
+google-auth-oauthlib>=1.2
+google-auth-httplib2>=0.2
