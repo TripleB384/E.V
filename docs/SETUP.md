@@ -8,6 +8,18 @@
 
 ## Get running
 
+### Mac: double-click, no typing
+
+1. Get the code onto your computer (e.g. `git clone` it, or download and unzip it from GitHub).
+2. Open the `E.V` folder in Finder and double-click **`Start E.V.command`**.
+3. First time only: this runs setup automatically (installs a few things, and opens a browser for you to log into Claude Code). After that, double-clicking just starts E.V straight away.
+4. It opens `http://localhost:8765` in your browser automatically once it's ready.
+5. To stop E.V, close that Terminal window (or press Ctrl+C in it).
+
+If macOS refuses to open it the very first time ("unidentified developer" — only happens if you downloaded a ZIP instead of using `git clone`): right-click **`Start E.V.command`** → **Open** → **Open**, once. After that, plain double-clicking works normally.
+
+### Everyone else (or if you prefer the terminal)
+
 ```bash
 git clone <this repo>
 cd E.V
@@ -17,7 +29,7 @@ cd E.V
 
 Open `http://localhost:8765` and start chatting.
 
-If `./scripts/setup.sh` reports `claude` isn't found, install Claude Code first, then re-run it.
+If setup reports `claude` isn't found, install Claude Code first, then re-run it.
 
 ## Manually verifying the Claude Code connection
 

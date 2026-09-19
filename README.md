@@ -31,6 +31,9 @@ E.V's brain is the real [Claude Code](https://code.claude.com) CLI, run headless
 
 ## Quickstart
 
+**Mac, no terminal:** double-click **`Start E.V.command`** in the project folder.
+
+**Everyone else:**
 ```bash
 ./scripts/setup.sh
 ./scripts/run_dev.sh
