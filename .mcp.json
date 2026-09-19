@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "tasks": {
+      "command": ".venv/bin/python3",
+      "args": ["mcp_servers/tasks_server.py"]
+    },
+    "calendar": {
+      "command": ".venv/bin/python3",
+      "args": ["mcp_servers/calendar_server.py"]
+    },
+    "canvas": {
+      "command": ".venv/bin/python3",
+      "args": ["mcp_servers/canvas_server.py"]
+    }
+  }
+}

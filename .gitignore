@@ -6,6 +6,10 @@ harness/.secrets/
 memory/*.db
 .claude/settings.local.json
 
+# things E.V creates for you — not this project's source
+workspace/*
+!workspace/.gitkeep
+
 # voice model assets (Phase 6, large binaries — never commit these)
 harness/voice/models/
 

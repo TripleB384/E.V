@@ -4,13 +4,20 @@ E.V's brain is the real **Claude Code CLI** (`claude`), run headlessly and authe
 
 Everything Claude Code natively provides (persona, memory-of-facts-in-context, tool use, skills, subagents) is configured through its own project files, versioned in this repo:
 
-- **`CLAUDE.md`** — persona, tone, standing instructions.
-- **`.claude/skills/`** — deterministic, well-known procedures (e.g. `summarize-notes`).
-- **`.claude/agents/`** — subagents for open-ended sub-tasks with their own tone/tool scope.
-- **`.mcp.json`** + **`mcp_servers/`** — real tool integrations (calendar, tasks, memory, research) that need actual auth/network/storage code.
-- **`.claude/settings.json`** — permissions and hooks.
+- **`CLAUDE.md`** — persona, tone, standing instructions, and guidance on using the tools below.
+- **`.claude/skills/`** — deterministic, well-known procedures (e.g. `summarize-notes`, `check-deadlines`, `capture-task`).
+- **`.claude/agents/`** — subagents for open-ended sub-tasks with their own tone/tool scope (none yet).
+- **`.mcp.json`** + **`mcp_servers/`** — real tool integrations that need actual auth/network/storage code: `tasks_server.py` (Todoist), `calendar_server.py` (Google Calendar), `canvas_server.py` (Canvas LMS).
 
-Everything Claude Code does *not* provide — an HTTP/chat surface, scheduling, voice I/O — is a small external **harness**, in `harness/`, that shells out to `claude -p` as a subprocess. The harness is deliberately thin: it owns session bookkeeping and process invocation, not reasoning, memory, or persona.
+Everything Claude Code does *not* provide — an HTTP/chat surface, scheduling, voice I/O, and *tool permission grants* (see below) — is a small external **harness**, in `harness/`, that shells out to `claude -p` as a subprocess. The harness is deliberately thin: it owns session bookkeeping, process invocation, and permission grants, not reasoning, memory, or persona.
+
+### Permissions: `--allowedTools`, not `.claude/settings.json`
+
+`.claude/settings.json`'s `permissions.allow` turns out to be inert for a project that's never been interactively "trusted" — and headless mode has no dialog to trust it with. So `harness/server.py` grants tools directly on each `claude -p` invocation via `--allowedTools` (`CHAT_ALLOWED_TOOLS` in that file) instead. This also means there's no per-call approval step the way there is in interactive Claude Code — see `docs/RISKS.md`'s security section before changing what's granted.
+
+### Creating files
+
+`Write`/`Edit`/`Bash(python3 *)` are granted to the chat, so E.V can write documents, code, and code-generated images/diagrams (charts via matplotlib, etc. — there's no text-to-image model available). `CLAUDE.md` instructs it to default to `workspace/` (gitignored — it's your generated output, not project source), but that's an instruction, not a technical sandbox; see `docs/RISKS.md`.
 
 ## Request flow (Phase 1)
 
@@ -37,11 +44,14 @@ Everything Claude Code does *not* provide — an HTTP/chat surface, scheduling, 
 | Phase | What it adds | Needs external credentials? |
 |---|---|---|
 | **1 — Text MVP** (done) | Local web chat ↔ headless Claude Code, in-persona replies | No |
+| **File creation** (done) | `workspace/`, `Write`/`Edit`/`Bash(python3 *)` granted to chat — documents, code, code-generated images/diagrams | No |
+| **Student integrations** (done, per-integration setup) | `tasks_server.py` (Todoist), `calendar_server.py` (Google Calendar), `canvas_server.py` (Canvas), `check-deadlines` / `capture-task` skills | Yes, per integration — Todoist API token, Google OAuth app, Canvas personal access token (each free, but an account you set up yourself; see `docs/SETUP.md`) |
 | **2 — Memory** | SQLite + sqlite-vec store, `memory_server.py` MCP server, `remember`/`recall`, a `Stop` hook that auto-extracts durable facts | No (fully local) |
-| **3 — Student integrations** | Calendar / Todoist / Canvas / arXiv MCP servers, `check-deadlines` / `capture-task` skills, `study-buddy` / `research-assistant` subagents | Yes — Google OAuth app, Canvas personal access token, Todoist token (each is free, but is an account you set up yourself) |
 | **4 — Browser voice** | `web/voice.js` using the browser's built-in `SpeechRecognition`/`speechSynthesis` | No |
 | **5 — Proactive scheduling** | `harness/scheduler.py` (APScheduler), desktop + Telegram notifications, launch-on-login | Telegram bot token if you want phone push (optional, free) |
 | **6 — Ambient voice (stretch)** | openWakeWord + whisper.cpp + Piper always-on daemon, optionally on a Raspberry Pi satellite | No, but needs downloaded model files and real audio hardware to test |
+
+(Numbering follows the original plan; file creation and the student integrations were pulled forward ahead of memory/voice/scheduling based on what was actually asked for next.)
 
 See `/root/.claude/plans/i-want-you-to-compiled-creek.md` (or your own copy of the plan) for the full per-phase file lists and verification steps.
 

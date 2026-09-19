@@ -21,13 +21,13 @@ if command -v uv >/dev/null 2>&1; then
   uv venv .venv
   # shellcheck disable=SC1091
   source .venv/bin/activate
-  uv pip install -r harness/requirements.txt
+  uv pip install -r harness/requirements.txt -r mcp_servers/requirements.txt
 else
   echo "uv not found, falling back to python3 -m venv + pip"
   python3 -m venv .venv
   # shellcheck disable=SC1091
   source .venv/bin/activate
-  pip install -r harness/requirements.txt
+  pip install -r harness/requirements.txt -r mcp_servers/requirements.txt
 fi
 
 if [[ ! -f .env ]]; then

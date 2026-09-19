@@ -19,7 +19,7 @@ Then open `http://localhost:8765`. Full steps and troubleshooting: [`docs/SETUP.
 
 ## Status
 
-Phase 1 (text chat) is live. Memory, student integrations (calendar/Canvas/tasks/research), voice, and proactive nudges are designed but not yet built — see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for what's next.
+Live: text chat, creating files (documents/code/generated images via `workspace/`), and Todoist/Google Calendar/Canvas integrations (each optional — set up whichever you want in [`docs/SETUP.md`](docs/SETUP.md)). Not yet built: memory across separate conversations, voice, and proactive nudges — see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for what's next.
 
 ## License
 

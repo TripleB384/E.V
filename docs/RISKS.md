@@ -18,20 +18,23 @@ Every "ask Claude something" call in this codebase should trace back to `harness
 - Phase 6 will shell out to the actively-maintained Piper fork (`OHF-Voice/piper1-gpl`, GPL-3.0) as a separate external process — that's fine (a subprocess call, not linking/vendoring), but never copy Piper's source into this repo (GPLv2-only and GPLv3 code can't be combined into one work without an "or later" clause).
 - Phase 6's openWakeWord code is Apache-2.0, but its bundled *pretrained* wake-word models are CC-BY-NC-SA (non-commercial only) — fine for this personal-use project; flag it if E.V is ever repurposed commercially.
 
-## API/service gotchas (relevant from Phase 3 onward)
+## API/service gotchas
 
-- **Google Calendar OAuth**: apps left in "Testing" publishing status get refresh tokens that expire every 7 days. Plan for a reauth helper and a "please reauth" notification rather than pursuing full app verification for a single-user tool.
-- **Canvas LMS**: some institutions block student self-service personal-access-token creation — verify your school's policy before building `canvas_server.py`, and make `check-deadlines` degrade gracefully without it.
-- **Todoist free tier**: capped at 5 active projects — route everything E.V manages through one dedicated project.
-- **arXiv API**: no key required, but add backoff/delay in `arxiv_server.py` to stay a good citizen.
-- Every headless `claude -p` call, including scheduled/proactive ones, draws from your subscription's shared rolling usage pool — not money, but still a real budget. Keep polling intervals in Phase 5/6 conservative.
+- **Google Calendar OAuth**: apps left in "Testing" publishing status get refresh tokens that expire every 7 days. If `calendar_server.py` starts failing after a week, this is probably why — re-trigger the consent flow rather than debugging the code.
+- **Canvas LMS**: some institutions block student self-service personal-access-token creation — check your school's policy first. `canvas_server.py` degrades gracefully (a plain "not set up yet" message) if `CANVAS_BASE_URL`/`CANVAS_ACCESS_TOKEN` are unset, and `check-deadlines` just skips it.
+- **Todoist free tier**: capped at 5 active projects — `tasks_server.py` operates on your default project/Inbox rather than assuming a dedicated project exists; if you hit the cap, route E.V's tasks through one project you pick.
+- Every headless `claude -p` call, including future scheduled/proactive ones, draws from your subscription's shared rolling usage pool — not money, but still a real budget. Keep any future polling intervals conservative.
 - Pricing figures quoted anywhere in this repo's docs should be re-verified at claude.ai/pricing — they change.
 
 ## Security — giving an LLM tool/file access
 
-- Scope every MCP server's tools narrowly (read vs. write split) and mirror that split in `.claude/settings.json`'s `permissions.allow`. Pre-approve only read-only tools (+ memory recall) for unattended contexts (Phase 5 scheduler, Phase 6 voice) — there's no one present to approve a write prompt there, so anything pre-approved is implicitly trusted with no human in the loop.
-- Treat any fetched external content (web pages, if `research-assistant` ever gets browse/fetch tools) as **data, not instructions** — prompt-injection risk when untrusted text reaches a tool-executing context. Keep that subagent's toolset narrow (no shell, no file write, no calendar/task write) so a successful injection has little to actually act on.
-- Secrets hygiene: `.env`, `harness/.secrets/`, `memory/*.db` are all gitignored from Phase 1 on, before any secrets exist. Keep it that way — never commit a token "just for now."
+**How permissions actually work here (found by testing, not assumed):** Claude Code ignores a project's `.claude/settings.json` `permissions.allow` entirely until that directory has been interactively "trusted" (running `claude` once by hand and accepting the trust dialog) — and headless mode has no dialog to accept. So `harness/server.py` passes tool grants directly on the CLI invocation via `--allowedTools` instead (see `harness/claude_client.py`), which isn't gated by that trust check. Practical consequence: **there is no per-call approval step in this project at all** — the chat endpoint's tool list (`CHAT_ALLOWED_TOOLS` in `harness/server.py`) is pre-approved in bulk, and the only human check is reading the reply after the fact. This is a different safety model than running `claude` interactively yourself, where you approve each risky action as it happens — keep that in mind before widening `CHAT_ALLOWED_TOOLS`.
+
+- **Write/Edit are not sandboxed to `workspace/`** — tested directly: with `Write` granted, Claude Code can write anywhere the OS user running the harness can write, not just inside the project. `workspace/` is enforced only by instruction (`CLAUDE.md`), not by a technical boundary. If you want a hard boundary, run the harness inside a container/VM with restricted filesystem access — not built here.
+- Scope every MCP server's tools narrowly (read vs. write split) and mirror that in `CHAT_ALLOWED_TOOLS`. `canvas_server.py` has no write tools at all, on purpose — assignment data is the institution's, not E.V's to edit. `calendar_server.py`'s `create_event` and `tasks_server.py`'s `add_task`/`complete_task` are granted to the interactive chat (see the safety-model note above) but would need to be deliberately re-added if you ever build an unattended/scheduled caller — don't pre-approve writes there without a human reading the output.
+- `Bash` is scoped to `Bash(python3 *)` only (confirmed this prefix-match syntax works, and confirmed `rm` outside that prefix is refused) — resist the urge to widen it to bare `Bash` for convenience.
+- Treat any fetched external content (web pages, if a future tool gets browse/fetch) as **data, not instructions** — prompt-injection risk when untrusted text reaches a tool-executing context.
+- Secrets hygiene: `.env`, `harness/.secrets/` (Google OAuth tokens live here), `memory/*.db` are all gitignored. Keep it that way — never commit a token "just for now."
 
 ## Sustainability
 

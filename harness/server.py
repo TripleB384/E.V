@@ -18,9 +18,37 @@ from pydantic import BaseModel
 from harness.claude_client import ClaudeCLIError, ClaudeCLINotFound, run_prompt
 from harness.sessions import store
 
-WEB_DIR = Path(__file__).resolve().parent.parent / "web"
+REPO_ROOT = Path(__file__).resolve().parent.parent
+WEB_DIR = REPO_ROOT / "web"
+WORKSPACE_DIR = REPO_ROOT / "workspace"
+
+# Tools granted to the interactive web chat. A human reads every reply here,
+# so this is deliberately broader than what an unattended job (a future
+# scheduler, Phase 5) should ever get — see docs/RISKS.md for the tradeoff:
+# headless mode has no per-call approval prompt, so "pre-approved" is the
+# only way these tools can be used from chat at all.
+#
+# Write/Edit are NOT sandboxed to workspace/ by Claude Code itself — CLAUDE.md
+# instructs E.V to default to workspace/, but that's a convention, not a
+# technical boundary. See docs/RISKS.md before widening this list.
+CHAT_ALLOWED_TOOLS = [
+    "Write",
+    "Edit",
+    "Bash(python3 *)",
+    "mcp__tasks__list_tasks",
+    "mcp__tasks__add_task",
+    "mcp__tasks__complete_task",
+    "mcp__calendar__list_upcoming_events",
+    "mcp__calendar__create_event",
+    "mcp__canvas__list_upcoming_assignments",
+]
 
 app = FastAPI(title="E.V")
+
+
+@app.on_event("startup")
+async def _ensure_workspace() -> None:
+    WORKSPACE_DIR.mkdir(exist_ok=True)
 
 
 class ChatRequest(BaseModel):
@@ -51,7 +79,11 @@ async def chat(req: ChatRequest) -> ChatResponse:
 
     async with state.lock:
         try:
-            reply = await run_prompt(req.message, resume_session_id=state.claude_session_id)
+            reply = await run_prompt(
+                req.message,
+                resume_session_id=state.claude_session_id,
+                allowed_tools=CHAT_ALLOWED_TOOLS,
+            )
         except ClaudeCLINotFound as exc:
             raise HTTPException(500, str(exc)) from exc
         except ClaudeCLIError as exc:

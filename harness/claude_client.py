@@ -9,11 +9,20 @@ keeps this project on the free side of Anthropic's "ordinary use of Claude
 Code" line. See docs/RISKS.md before changing this file.
 
 Field names below (`result`, `session_id`, `is_error`, `subtype`) and flags
-(`-p`, `--output-format json`, `--resume <id>`) were confirmed by hand
-against a live `claude` CLI (version 2.1.278) rather than assumed — but CLI
-output can change between versions, so if this starts breaking, the first
-thing to do is re-run `claude -p "hi" --output-format json` by hand and diff
-the shape against what's parsed here.
+(`-p`, `--output-format json`, `--resume <id>`, `--allowedTools`) were
+confirmed by hand against a live `claude` CLI (version 2.1.278) rather than
+assumed — but CLI output can change between versions, so if this starts
+breaking, the first thing to do is re-run `claude -p "hi" --output-format
+json` by hand and diff the shape against what's parsed here.
+
+Why `--allowedTools` and not `.claude/settings.json`'s `permissions.allow`:
+empirically, Claude Code ignores a project's `permissions.allow` entirely
+until that project directory has been interactively "trusted" (run `claude`
+once by hand and accept the trust dialog) — there's no trust dialog to
+accept in headless mode, so a fresh clone's settings.json permissions are
+silently ignored. Passing `--allowedTools` on the CLI invocation itself
+isn't gated by that trust check, so that's what this module uses for any
+tool grants. See docs/RISKS.md for what that means for the security model.
 """
 
 from __future__ import annotations
@@ -64,18 +73,25 @@ async def run_prompt(
     prompt: str,
     *,
     resume_session_id: str | None = None,
+    allowed_tools: list[str] | None = None,
     timeout: float = DEFAULT_TIMEOUT_SECONDS,
 ) -> ClaudeReply:
     """Run one turn against Claude Code in headless mode and return the parsed reply.
 
-    Runs with cwd=REPO_ROOT so Claude Code auto-loads this project's CLAUDE.md,
-    .claude/settings.json, and (once it exists) .mcp.json on its own — callers
-    never re-inject persona text or tool wiring by hand.
+    Runs with cwd=REPO_ROOT so Claude Code auto-loads this project's CLAUDE.md
+    and .mcp.json on its own — callers never re-inject persona text or MCP
+    server wiring by hand. Tool permissions are the one thing callers DO pass
+    explicitly, via allowed_tools (see module docstring for why): e.g.
+    ["Write", "Edit", "Bash(python3 *)", "mcp__tasks__add_task"]. Pass a
+    narrower list for unattended/unsupervised callers than for a live chat
+    where a human reads every reply.
     """
     binary = _claude_binary()
     args = [binary, "-p", prompt, "--output-format", "json"]
     if resume_session_id:
         args += ["--resume", resume_session_id]
+    if allowed_tools:
+        args += ["--allowedTools", *allowed_tools]
 
     # CLAUDE_CODE_OAUTH_TOKEN, if set in the environment (from `claude setup-token`),
     # is picked up by the CLI automatically; otherwise it falls back to the
